@@ -1,6 +1,5 @@
 import os, sqlite3, pandas as pd, plotly.express as px
 import streamlit as st
-from datetime import datetime, timedelta, timezone
 
 DB_PATH = os.environ.get("VIEWER_DB", "data/viewer.db")
 st.set_page_config(page_title="Real-Time Viewer Dashboard", layout="wide")
@@ -12,9 +11,9 @@ def load_df():
     con = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM events", con, parse_dates=["ts"])
     con.close()
-    if not len(df):
+    if df.empty:
         return df
-    df["ts"] = pd.to_datetime(df["ts"], utc=True)
+    df["ts"] = pd.to_datetime(df["ts"], utc=True, errors="coerce")
     return df
 
 st.title("📺 Real-Time Viewer Behavior")
@@ -24,19 +23,19 @@ if df.empty:
     st.info("Waiting for events… In another terminal, run:  `python event_sim.py`")
     st.stop()
 
-now = datetime.now(timezone.utc)
+now = pd.Timestamp.now(tz="UTC")
 
 # KPIs
-last_min = now - timedelta(seconds=60)
+last_min = now - pd.Timedelta(seconds=60)
 active_viewers = df[df["ts"] >= last_min]["viewer_id"].nunique()
 
-last_10s = now - timedelta(seconds=10)
+last_10s = now - pd.Timedelta(seconds=10)
 eps = len(df[df["ts"] >= last_10s]) / 10.0
 
 # dwell estimation (last 30 min)
-win = df[df["ts"] >= (now - timedelta(minutes=30))].sort_values("ts")
-starts = win[win["event_type"]=="view_start"].groupby("viewer_id")["ts"].min()
-ends = win[win["event_type"]=="view_end"].groupby("viewer_id")["ts"].max()
+win = df[df["ts"] >= (now - pd.Timedelta(minutes=30))].sort_values("ts")
+starts = win[win["event_type"] == "view_start"].groupby("viewer_id")["ts"].min()
+ends = win[win["event_type"] == "view_end"].groupby("viewer_id")["ts"].max()
 aligned = pd.concat([starts.rename("start"), ends.rename("end")], axis=1)
 aligned["end"] = aligned["end"].fillna(now)
 aligned["dwell_sec"] = (aligned["end"] - aligned["start"]).dt.total_seconds().clip(lower=0)
@@ -48,18 +47,22 @@ col2.metric("Events / sec (last 10s)", f"{eps:.1f}")
 col3.metric("Avg dwell (last 30m)", f"{avg_dwell/60:.1f} min")
 
 # Events/second (5 min)
-five = df[df["ts"] >= (now - timedelta(minutes=5))].copy()
+five = df[df["ts"] >= (now - pd.Timedelta(minutes=5))].copy()
 five["sec"] = five["ts"].dt.floor("s")
 ts_counts = five.groupby("sec")["id"].count().reset_index(name="events")
 fig_ts = px.line(ts_counts, x="sec", y="events", title="Events/second (last 5 min)")
 st.plotly_chart(fig_ts, use_container_width=True)
 
 # Concurrent viewers over time (15 min, rolling 60s)
-fifteen = df[df["ts"] >= (now - timedelta(minutes=15))].copy()
+fifteen = df[df["ts"] >= (now - pd.Timedelta(minutes=15))].copy()
 if not fifteen.empty:
-    timeline = pd.date_range(fifteen["ts"].min().floor("s"), now.ceil("s"), freq="S")
+    start = fifteen["ts"].min().floor("s")
+    end = now.ceil("s")
+    timeline = pd.date_range(start, end, freq="S")
+
     def concurrent_at(t):
         return fifteen[fifteen["ts"] >= (t - pd.Timedelta(seconds=60))]["viewer_id"].nunique()
+
     conc = pd.DataFrame({"sec": timeline})
     conc["concurrent"] = [concurrent_at(t) for t in timeline]
     fig_conc = px.line(conc, x="sec", y="concurrent", title="Concurrent viewers (rolling 60s)")
