@@ -1,13 +1,13 @@
 # Real-Time Viewer Dashboard
 
-📺 Live analytics for concurrent viewers, events/sec, dwell time, and top countries.
+Live analytics for concurrent viewers, events/sec, dwell time, and top countries.
 
-## 🚀 Stack
+## Stack
 - Streamlit (UI)
 - SQLite (local store)
 - Python event simulator
 
-## ▶️ Run
+## Run
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
