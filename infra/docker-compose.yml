@@ -1,0 +1,60 @@
+services:
+  redpanda:
+    image: redpandadata/redpanda:latest
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp
+      - "1"
+      - --memory
+      - 1G
+      - --reserve-memory
+      - 0M
+      - --check=false
+      - --node-id
+      - "0"
+      - --kafka-addr
+      - PLAINTEXT://0.0.0.0:9092,OUTSIDE://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - PLAINTEXT://redpanda:9092,OUTSIDE://127.0.0.1:19092
+    ports:
+      - "9092:9092"   
+      - "19092:19092"
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: viewerdb
+      POSTGRES_USER: viewer
+      POSTGRES_PASSWORD: viewerpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "viewer"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Lightweight Airflow (webserver + scheduler in one)
+  airflow:
+    image: apache/airflow:2.9.3
+    environment:
+      - AIRFLOW_UID=${AIRFLOW_UID:-50000}
+      - AIRFLOW_GID=${AIRFLOW_GID:-0}
+      - _AIRFLOW_WWW_USER_USERNAME=airflow
+      - _AIRFLOW_WWW_USER_PASSWORD=airflow
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    volumes:
+      - ./infra/airflow/dags:/opt/airflow/dags
+    command: bash -c "airflow db init && airflow users create --username airflow --password airflow --firstname a --lastname b --role Admin --email a@b.c || true && airflow scheduler & airflow webserver"
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+      - redpanda
+
+volumes:
+  pgdata:

@@ -1,4 +1,11 @@
 streamlit
 pandas
 plotly
-sqlalchemy
+SQLAlchemy
+psycopg2-binary
+fastapi
+uvicorn[standard]
+confluent-kafka
+python-dotenv
+lifelines
+prophet

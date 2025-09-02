@@ -1,29 +1,66 @@
-# --- Python ---
+# Python
 __pycache__/
 *.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
 *.egg-info/
-dist/
-build/
+.eggs/
+*.manifest
+*.spec
 
-# --- Virtual environments ---
+# Virtual environments
 .venv/
+env/
 venv/
+ENV/
+*.env
+*.env.*
 
-# --- Jupyter ---
-.ipynb_checkpoints/
+# Logs & debug
+*.log
+*.out
+*.err
+logs/
+.DS_Store
 
-# --- Editors / IDE ---
+# Jupyter
+.ipynb_checkpoints
+.notebook_checkpoints
+*.ipynb~
+
+# VSCode / IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# --- OS junk ---
-.DS_Store
+# Airflow
+infra/airflow/logs/
+infra/airflow/__pycache__/
+infra/airflow/airflow.db
+infra/airflow/airflow.cfg
+
+# Data / databases
+data/
+*.db
+*.sqlite
+*.sqlite3
+
+# Secrets
+.env
+.env.local
+.env.dev
+.env.prod
+.env.test
+
+# R
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+
+# OS cruft
 Thumbs.db
-
-# --- Data files ---
-data/*.db
-*.csv
-*.log
-
-# --- Streamlit cache ---
-.streamlit/
+.DS_Store
